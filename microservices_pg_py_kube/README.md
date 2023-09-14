@@ -1,64 +1,64 @@
-# Микросервисная архитектура
+# Microservice architecture
 
-- 1 [Описание](#Описание)
-- 2 [Создание микросервисов](#Создание_микросервисов)
+- 1 [Project description](#Project_description)
+- 2 [Microservice development](#Microservice_development)
 	- 2.1 [DDS](#DDS)
 		- 2.1.1 [Docker-image](#Docker-image)
 		- 2.1.2 [Docker-compose](#Docker-compose)
 		- 2.1.3 [Helm-chart](#Helm-chart)
-		- 2.1.4 [DDS-сервис](#DDS-сервис)
-			- 2.1.4.1 [Создание подключений](#Создание_подключений)
-			- 2.1.4.2 [Работа с Postgres](#Работа_с_Postgres)
-			- 2.1.4.3 [Работа с Kafka](#Работа_с_Kafka)
-			- 2.1.4.4 [Основная логика](#Основная_логика)
+		- 2.1.4 [DDS-service](#DDS-service)
+			- 2.1.4.1 [Connections](#Connections)
+			- 2.1.4.2 [Postgres](#Postgres)
+			- 2.1.4.3 [Kafka](#Kafka)
+			- 2.1.4.4 [App logic](#App_logic)
 	- 2.2 [CDM](#CDM)
-		- 2.2.1 [Работа с Postgres](#Работа_с_Postgres_2)
-		- 2.2.2 [Работа с Kafka](#Работа_с_Kafka_2)
-- 3 [Выводы](#Выводы)
+		- 2.2.1 [Postgres](#Postgres_2)
+		- 2.2.2 [Работа с Kafka](#Kafka_2)
+- 3 [Conclusion](#Conclusion)
 
-<a id="Описание"></a>
-## 1 Описание 
+<a id="Project_description"></a>
+## 1 Project description 
 
-В рамках данного проекта необходимо разработать хранилище данных для агрегатора доставки еды. Собственных мощностей у компании нет, 
-поэтому для решения задачи нужно воспользоваться облачным сервисом. В данном случае был выбрал **Yandex.Cloud**. 
+Within this project, it is necessary to develop a data storage for a food delivery aggregator. 
+The company does not have its own resources, so to solve the task, it is necessary to use a cloud service. In this case, **Yandex.Cloud** was chosen. 
 
-В нем были подняты:
+With it's help were deployed:
 - **PostgreSQL**
 - **Redis**
 - **Kafka**
-- **Container Registry** для докер-образов
+- **Container Registry** for docker images
 
-Хранилище должно содержать 3 слоя: 
+DWH should contain 3 layers: 
 
-- **STG** — исходные данные as is.
-- **CDM** — две витрины. Первая витрина — счётчик заказов по блюдам; вторая — счётчик заказов по категориям товаров.
-- **DDS** — модель данных Data Vault.
+- **STG** — raw data as is.
+- **CDM** — two datamarts. First one — order counter for dishes; Second one — order counter by product categories.
+- **DDS** — Data Vault data model.
 
-Схема DDS-слоя: 
+DDS-layer scheme: 
 
 ![dds](https://github.com/SomeBadDecisions/Data_engineering/assets/63814959/1411f0db-ae32-4c7d-ade2-201aea6a9494)
 
-Данные из системы-источника передаются по двум каналам:
+Data from the source system is transmitted through two channels:
 
-- Поток заказов, который идёт в **Kafka** (5 заказов в минуту).
-- Словарные данные (блюда, рестораны, пользователи), которые идут в **Redis**.
+- The flow of orders that goes into the **Kafka** (5 per minute).
+- Dictionary data (dishes, restaurants, users), that goes into **Redis**.
 
-Формат входных данных: **JSON**.
-Брокер сообщений: **Kafka**.
-БД: **PostgreSQL**, **Redis**.
+Raw data format: **JSON**.
+Message broker: **Kafka**.
+Database: **PostgreSQL**, **Redis**.
 
-Для реализации проекта необходимо написать 3 микросервиса (по одному на каждый слой) и развернуть их в **Kubernetes**.
+To implement the project, it is necessary to write 3 microservices (one for each layer) and deploy them in **Kubernetes**.
 
-На данных из CDM бизнес-аналитики будут строить BI-отчеты в Data Lens.
+Business analysts will build BI reports in Data Lens based on the data from CDM.
 
-Итоговый pipeline будет выглядеть следующим образом:
+The final pipeline will look as follows:
 
 ![Image](https://github.com/SomeBadDecisions/Data_engineering/assets/63814959/5e8f2d13-85c6-4063-9fa0-f606d9e96f7e)
 
-Ранее мной уже был разработан первый микросервис для STG-слоя: /cloud_service/**service_stg**.
+I have already developed the first microservice for the STG layer: /cloud_service/**service_stg**.
 
-<a id="Создание_микросервисов"></a>
-## 2 Создание микросервисов 
+<a id="Microservice_development"></a>
+## 2 Microservice development 
 
 <a id="DDS"></a>
 ### 2.1 DDS 
@@ -66,15 +66,15 @@
 <a id="Docker-image"></a>
 #### 2.1.1 Docker-image 
 
-Для начала создадим docker-образ будущего сервиса.
+To begin with, let's create a docker image for the future service.
 
-Для DDS-сервиса нам понадобятся подключения к **Kafka** и **PostgreSQL**.
+For the DDS service, we will need connections to **Kafka** and **PostgreSQL**.
 
-В целях безопасности не будем прописывать параметры подключения в коде самого сервиса, а сделаем это через переменные среды.
+For security purposes, we will not include the connection parameters in the code of the service itself, but rather set them through environment variables.
 
-Все необходимые библиотеки пропишем в cloud_service/service_dds/**requirements.txt** и в дальнейшем будем устанавливать из него.
+We will specify all the necessary libraries in cloud_service/service_dds/**requirements.txt** and install them from there in the future.
 
-Код будет выглядеть следующим образом:
+The code will look as follows:
 
 ```python
 FROM python:3.10
@@ -112,7 +112,7 @@ CMD ["app.py"]
 <a id="Docker-compose"></a>
 #### 2.1.2 Docker-compose 
 
-Добавим описание DDS-сервиса в cloud_service/**docker-compose.yaml**:
+Let's add a description of the DDS service to cloud_service/**docker-compose.yaml**:
 
 ```python
 dds_service:
@@ -147,9 +147,9 @@ dds_service:
 <a id="Helm-chart"></a>
 #### 2.1.3 Helm-chart 
 
-Подготовим файлы для релиза через Helm.
+Let's prepare the files for release through Helm.
 
-В cloud_service/service_dds/app/**Chart.yaml** пропишем название сервиса:
+In cloud_service/service_dds/app/**Chart.yaml** we will specify the name of the service:
 
 ```python
 apiVersion: v2
@@ -159,7 +159,7 @@ type: application
 version: 0.1.0
 appVersion: "1.16.0"
 ```
-Создадим cloud_service/service_dds/app/**values.yaml** (параметры подключения здесь и в коде изменены в целях безопасности):
+Let's create cloud_service/service_dds/app/**values.yaml** (connection parameters here and in the code have been changed for security purposes):
 
 ```python
 replicaCount: 1
@@ -203,15 +203,15 @@ resources:
     memory: 128Mi
 ```
 
-<a id="DDS-сервис"></a>
-#### 2.1.4 DDS-сервис 
+<a id="DDS-service"></a>
+#### 2.1.4 DDS-service 
 
-<a id="Создание_подключений"></a>
-##### 2.1.4.1 Создание подключений 
+<a id="Connections"></a>
+##### 2.1.4.1 Connections 
 
-Для начала создадим все необходимые подключения. Для DDS-слоя это postgres и kafka.
+To begin with, let's create all the necessary connections. For the DDS layer, these are postgres and kafka.
 
-Пропишем логику подключения к kafka в cloud_service/service_dds/src/lib/kafka_connect/**kafka_connectors.py**:
+Let's define the logic for connecting to kafka in cloud_service/service_dds/src/lib/kafka_connect/**kafka_connectors.py**:
 
 ```python
 import json
@@ -284,7 +284,7 @@ class KafkaConsumer:
 
 ```
 
-Аналогично пропишем подключение к postgres в файле cloud_service/service_dds/src/lib/pg/**pg_connect.py**:
+Similarly, let's configure the connection to PostgreSQL in the file cloud_service/service_dds/src/lib/pg/**pg_connect.py**:
 
 ```python
 from contextlib import contextmanager
@@ -334,9 +334,9 @@ class PgConnect:
 
 ```
 
-<a id="Работа_с_Postgres"></a>
-##### 2.1.4.2 Работа с Postgres 
-Далее напишем функции для заполнения таблиц DDS-слоя в Postgres и положим в файл cloud_service/service_dds/src/dds_loader/repository/**dds_repository.py**:
+<a id="Postgres"></a>
+##### 2.1.4.2 Postgres 
+Next, we will write functions to fill the DDS layer tables in Postgres and save them to a file cloud_service/service_dds/src/dds_loader/repository/**dds_repository.py**:
 
 ```python
 import uuid
@@ -1079,9 +1079,8 @@ class DdsRepository:
                 )
 
 ```
-В целях соблюдения идемпотетности напишемд ополнительные функции для проверки наличия всех необходимых таблиц в Postgres и их создания, в случае отсутствия.
-
-Все необходимые функции, содержащие DDL, положим в файл cloud_service/service_dds/src/dds_loader/repository/**dds_migrations.py**:
+In order to ensure idempotence, we will write additional functions to check the presence of all necessary tables in Postgres and create them if they are missing. 
+All necessary functions containing DDL will be placed in the file cloud_service/service_dds/src/dds_loader/repository/**dds_migrations.py**:
 
 ```python
 from lib.pg import PgConnect
@@ -1300,10 +1299,10 @@ class DdsMigrator:
         )
 
 ```
-<a id="Работа_с_Kafka"></a>
-##### 2.1.4.3 Работа с Kafka 
+<a id="Kafka"></a>
+##### 2.1.4.3 Kafka 
 
-Перейдем к передаче данных в Kafka. Логику приема данных и их последующей передачи в новый топик опишем в файле cloud_service/service_dds/src/dds_loader/**dds_message_processor_job.py**:
+Let's move on to data transmission in Kafka. We will describe the logic of receiving data and their subsequent transfer to a new topic in the file cloud_service/service_dds/src/dds_loader/**dds_message_processor_job.py**:
 
 ```python
 from datetime import datetime
@@ -1427,15 +1426,17 @@ class DdsMessageProcessor:
         return products
 
 ```
-<a id="Основная_логика"></a>
-##### 2.1.4.4 Основная логика 
-Основную логику сервиса опишем в cloud_service/service_dds/**src/app.py**.
+<a id="App logic"></a>
+##### 2.1.4.4 App logic 
+The main logic of the service is described in cloud_service/service_dds/src/**app.py**.
 
-Для работы сервиса воспользуемся классом **BackgroundScheduler**, который будет запускать воркер с заданной периодичностью.
-В этом случае функция run в объекте proc является входной точкой в основную логику обработки сообщений. 
-С заданной периодичностью планировщик будет запускать функцию run, внутри которой вычитываются и обрабатываются сообщения из Kafka. 
+To work with the service, we will use the class **BackgroundScheduler**, which will launch a worker at a specified interval.
 
-Таким образом, будет реализован micro-batch processing.
+In this case, the run function in the proc object is the entry point to the main logic of message processing.
+
+With the specified interval, the scheduler will launch the run function, inside which messages are read and processed from Kafka.
+
+Thus, micro-batch processing will be implemented.
 
 ```python
 import logging
@@ -1471,7 +1472,7 @@ if __name__ == '__main__':
 
 ```
 
-Создадим файл cloud_service/service_dds/src/**app_config.py**, который будет содержать параметры подключения к консьюмеру, продьюсеру в Kafka и базе данных в postgres:
+Let's create a file cloud_service/service_dds/src/**app_config.py**, which will contain the connection parameters to the consumer and producer in Kafka, and the database in Postgres:
 
 ```python
 import os
@@ -1532,21 +1533,20 @@ class AppConfig:
         )
 ```
 
-На этом разработка DDS-сервиса завершена.
+The development of the DDS service is complete.
 
 <a id="CDM"></a>
 ### 2.2 CDM 
 
-Большинство шагов для создания CDM-сервиса будут аналогичными, поэтому подробно расписывать их не будем.
+Most of the steps for creating a CDM service will be similar, so we will not go into detail about them. 
+The difference will be in the logic of filling the tables in Postgres and receiving data from the Kafka topic.
 
-Отличаться будет логика заполнения таблиц в Postgres и приема данных из топика Kafka.
+<a id="Postgres_2"></a>
+#### 2.2.1 Postgres 
 
-<a id="Работа_с_Postgres_2"></a>
-#### 2.2.1 Работа с Postgres 
+By analogy, let's describe the DDL for the CDM layer in the file cloud_service/service_cdm/src/cdm_loader/repository/**cdm_migrations.py**.
 
-По аналогии опишем DDL для CDM-слоя в файле cloud_service/service_cdm/src/cdm_loader/repository/**cdm_migrations.py**.
-
-Логика заполнения таблиц находится в файле cloud_service/service_cdm/src/cdm_loader/repository/**cdm_repository.py** и выглядит следующим образом:
+The logic of filling the tables is located in the file cloud_service/service_cdm/src/cdm_loader/repository/**cdm_repository.py** and looks as follows:
 
 ```python
 from uuid import UUID
@@ -1660,10 +1660,10 @@ class RestaurantCategoryCounterRepository:
                 )
 
 ```
-<a id="Работа_с_Kafka_2"></a>
-#### 2.2.2 Работа с Kafka 
+<a id="Kafka_2"></a>
+#### 2.2.2 Kafka 
 
-Логику приема сообщений опишем в файле cloud_service/service_cdm/src/cdm_loader/**cdm_message_processor_job.py**:
+The logic of message reception will be described in the file cloud_service/service_cdm/src/cdm_loader/**cdm_message_processor_job.py**:
 
 ```python
 from datetime import datetime
@@ -1727,20 +1727,22 @@ class CdmMessageProcessor:
 
 ```
 
-Как и писал ранее, остальные шаги, такие как заполнение docker и docker-compose файлов, подготовка yaml для релиза в Helm и создание подключений - практически идентичны.
+As I mentioned earlier, the remaining steps, such as filling in docker and docker-compose files, preparing yaml for release in Helm, and creating connections, are practically identical.
 
-На этом создание CDM-сервиса окончено.
+This concludes the creation of the CDM service.
 
-После окончания разработки сервисов были созданы соответствующие Docker-образы, которые в свою очередь были запушены в реджистри. 
- 
-DDS и CDM Сервисы полностью готовы для релиза в Helm и дальнейшем автономной работы.
+After the development of the services was completed, corresponding Docker images were created and pushed to the registry.
+DDS and CDM services are fully ready for release in Helm and further autonomous operation.
 
-<a id="Выводы"></a>
-## 3 Выводы
+<a id="Conclusion"></a>
+## 3 Conclusion
 
-В рамках данного проекта:
+Within this project:
 
-- Были подняты Kafka, Postgres, Redis в облаке
-- Разработана схема DDS-слоях по модели Data Vault
-- Написан DDS-сервис, вычитывающий данные из топика Kafka, сохраняющий их в DDS-слой БД Postgres и передающий их в новый топик Kafka
-- Написан CDM-сервис, забирающий данные из топика Kafka и сохраняющий их в CDM-слой БД Postgres
+- Kafka, Postgres, and Redis were deployed in the cloud
+
+- A schema for the DDS layer was developed based on the Data Vault model
+
+- A DDS service was written to read data from the Kafka topic, save it in the DDS layer of the Postgres database, and transfer it to a new Kafka topic
+
+- A CDM service was written to retrieve data from the Kafka topic and save it in the CDM layer of the Postgres database
