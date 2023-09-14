@@ -1,0 +1,39 @@
+
+
+replicaCount: 1
+
+image:
+  repository: some_rep
+  pullPolicy: IfNotPresent
+  tag: "v2023-08-02-r1"
+
+containerPort: 5000
+
+config:
+  KAFKA_HOST: "some_kafka_host"
+  KAFKA_PORT: "some_kafka_port"
+  KAFKA_CONSUMER_USERNAME: "producer_consumer"
+  KAFKA_CONSUMER_PASSWORD: "pass"
+  KAFKA_CONSUMER_GROUP: "main-consumer-group"
+  KAFKA_SOURCE_TOPIC: "dds-service-orders"
+
+  PG_WAREHOUSE_HOST: "pg_host"
+  PG_WAREHOUSE_PORT: "port"
+  PG_WAREHOUSE_DBNAME: "some_db"
+  PG_WAREHOUSE_USER: "konstantin"
+  PG_WAREHOUSE_PASSWORD: "pass"
+
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+podAnnotations: {}
+
+resources:
+  limits:
+    cpu: 100m
+    memory: 128Mi
+  requests:
+    cpu: 100m
+    memory: 128Mi
