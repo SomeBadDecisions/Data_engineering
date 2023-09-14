@@ -53,7 +53,8 @@ Business analysts will build BI reports in Data Lens based on the data from CDM.
 
 The final pipeline will look as follows:
 
-![Image](https://github.com/SomeBadDecisions/Data_engineering/assets/63814959/5e8f2d13-85c6-4063-9fa0-f606d9e96f7e)
+![app_scheme](https://github.com/SomeBadDecisions/Data_engineering/assets/63814959/a7041d6c-e11d-4853-b9da-7b023819633a)
+
 
 I have already developed the first microservice for the STG layer: /cloud_service/**service_stg**.
 
