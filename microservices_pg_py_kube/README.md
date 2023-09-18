@@ -114,7 +114,7 @@ CMD ["app.py"]
 <a id="Docker-compose"></a>
 #### 2.1.2 Docker-compose 
 
-Let's add a description of the DDS service to cloud_service/**docker-compose.yaml**:
+<details><summary>Let's add a description of the DDS service to cloud_service/**docker-compose.yaml**:</summary>
 
 ```python
 dds_service:
@@ -146,6 +146,7 @@ dds_service:
       - "5012:5000"
     restart: unless-stopped
 ```
+</details>
 <a id="Helm-chart"></a>
 #### 2.1.3 Helm-chart 
 
