@@ -163,7 +163,7 @@ type: application
 version: 0.1.0
 appVersion: "1.16.0"
 ```
-Let's create cloud_service/service_dds/app/**values.yaml** (connection parameters here and in the code have been changed for security purposes):
+<details><summary>Let's create cloud_service/service_dds/app/<strong>values.yaml</strong> (connection parameters here and in the code have been changed for security purposes):</summary>
 
 ```python
 replicaCount: 1
@@ -206,6 +206,7 @@ resources:
     cpu: 100m
     memory: 128Mi
 ```
+</details>
 
 <a id="DDS-service"></a>
 #### 2.1.4 DDS-service 
@@ -215,7 +216,7 @@ resources:
 
 To begin with, let's create all the necessary connections. For the DDS layer, these are postgres and kafka.
 
-Let's define the logic for connecting to kafka in cloud_service/service_dds/src/lib/kafka_connect/**kafka_connectors.py**:
+<details><summary>Let's define the logic for connecting to kafka in cloud_service/service_dds/src/lib/kafka_connect/<strong>kafka_connectors.py:</strong></summary>
 
 ```python
 import json
@@ -287,8 +288,9 @@ class KafkaConsumer:
         return json.loads(val)
 
 ```
+</details>
 
-Similarly, let's configure the connection to PostgreSQL in the file cloud_service/service_dds/src/lib/pg/**pg_connect.py**:
+<details><summary>Similarly, let's configure the connection to PostgreSQL in the file cloud_service/service_dds/src/lib/pg/<strong>pg_connect.py:</strong></summary>
 
 ```python
 from contextlib import contextmanager
@@ -337,10 +339,11 @@ class PgConnect:
             conn.close()
 
 ```
+</details>
 
 <a id="Postgres"></a>
 ##### 2.1.4.2 Postgres 
-Next, we will write functions to fill the DDS layer tables in Postgres and save them to a file cloud_service/service_dds/src/dds_loader/repository/**dds_repository.py**:
+<details><summary>Next, we will write functions to fill the DDS layer tables in Postgres and save them to a file cloud_service/service_dds/src/dds_loader/repository/<strong>dds_repository.py:</strong></summary>
 
 ```python
 import uuid
@@ -1083,8 +1086,10 @@ class DdsRepository:
                 )
 
 ```
+</details>
+
 In order to ensure idempotence, we will write additional functions to check the presence of all necessary tables in Postgres and create them if they are missing. 
-All necessary functions containing DDL will be placed in the file cloud_service/service_dds/src/dds_loader/repository/**dds_migrations.py**:
+<details><summary>All necessary functions containing DDL will be placed in the file cloud_service/service_dds/src/dds_loader/repository/<strong>dds_migrations.py:</strong></summary>
 
 ```python
 from lib.pg import PgConnect
@@ -1303,10 +1308,12 @@ class DdsMigrator:
         )
 
 ```
+</details>
+
 <a id="Kafka"></a>
 ##### 2.1.4.3 Kafka 
 
-Let's move on to data transmission in Kafka. We will describe the logic of receiving data and their subsequent transfer to a new topic in the file cloud_service/service_dds/src/dds_loader/**dds_message_processor_job.py**:
+<details><summary>Let's move on to data transmission in Kafka. We will describe the logic of receiving data and their subsequent transfer to a new topic in the file cloud_service/service_dds/src/dds_loader/<strong>dds_message_processor_job.py:</strong></summary>
 
 ```python
 from datetime import datetime
@@ -1430,6 +1437,8 @@ class DdsMessageProcessor:
         return products
 
 ```
+</details>
+
 <a id="App logic"></a>
 ##### 2.1.4.4 App logic 
 The main logic of the service is described in cloud_service/service_dds/src/**app.py**.
@@ -1476,7 +1485,7 @@ if __name__ == '__main__':
 
 ```
 
-Let's create a file cloud_service/service_dds/src/**app_config.py**, which will contain the connection parameters to the consumer and producer in Kafka, and the database in Postgres:
+<details><summary>Let's create a file cloud_service/service_dds/src/<strong>app_config.py</strong>, which will contain the connection parameters to the consumer and producer in Kafka, and the database in Postgres:</summary>
 
 ```python
 import os
@@ -1536,6 +1545,7 @@ class AppConfig:
             self.pg_warehouse_password
         )
 ```
+</details>
 
 The development of the DDS service is complete.
 
@@ -1550,7 +1560,7 @@ The difference will be in the logic of filling the tables in Postgres and receiv
 
 By analogy, let's describe the DDL for the CDM layer in the file cloud_service/service_cdm/src/cdm_loader/repository/**cdm_migrations.py**.
 
-The logic of filling the tables is located in the file cloud_service/service_cdm/src/cdm_loader/repository/**cdm_repository.py** and looks as follows:
+<details><summary>The logic of filling the tables is located in the file cloud_service/service_cdm/src/cdm_loader/repository/<strong>cdm_repository.py</strong> and looks as follows:</summary>
 
 ```python
 from uuid import UUID
@@ -1664,10 +1674,12 @@ class RestaurantCategoryCounterRepository:
                 )
 
 ```
+</details>
+
 <a id="Kafka_2"></a>
 #### 2.2.2 Kafka 
 
-The logic of message reception will be described in the file cloud_service/service_cdm/src/cdm_loader/**cdm_message_processor_job.py**:
+<details><summary>The logic of message reception will be described in the file cloud_service/service_cdm/src/cdm_loader/<strong>cdm_message_processor_job.py:</strong></summary>
 
 ```python
 from datetime import datetime
@@ -1730,6 +1742,8 @@ class CdmMessageProcessor:
         self._logger.info(f"{datetime.utcnow()}: FINISH")
 
 ```
+
+</details>
 
 As I mentioned earlier, the remaining steps, such as filling in docker and docker-compose files, preparing yaml for release in Helm, and creating connections, are practically identical.
 
