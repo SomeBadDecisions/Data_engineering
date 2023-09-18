@@ -13,7 +13,7 @@
 			- 2.1.4.4 [App logic](#App_logic)
 	- 2.2 [CDM](#CDM)
 		- 2.2.1 [Postgres](#Postgres_2)
-		- 2.2.2 [Работа с Kafka](#Kafka_2)
+		- 2.2.2 [Kafka](#Kafka_2)
 - 3 [Conclusion](#Conclusion)
 
 <a id="Project_description"></a>
