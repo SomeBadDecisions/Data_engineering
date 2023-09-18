@@ -76,9 +76,9 @@ For security purposes, we will not include the connection parameters in the code
 We will specify all the necessary libraries in cloud_service/service_dds/**requirements.txt** and install them from there in the future.
 
 <details>
-	<summary>Docker-image:</summary>
+	<summary>**Docker-image:**</summary>
 
-	```python
+```python
 	FROM python:3.10
 
 	ARG KAFKA_HOST
@@ -109,7 +109,7 @@ We will specify all the necessary libraries in cloud_service/service_dds/**requi
 	ENTRYPOINT ["python"]
 
 	CMD ["app.py"]
-	```
+```
 </details>
 
 <a id="Docker-compose"></a>
