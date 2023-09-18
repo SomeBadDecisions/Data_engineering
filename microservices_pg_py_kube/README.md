@@ -75,8 +75,7 @@ For security purposes, we will not include the connection parameters in the code
 
 We will specify all the necessary libraries in cloud_service/service_dds/**requirements.txt** and install them from there in the future.
 
-<details>
-	<summary><p>Docker-image:</p></summary>
+<details><summary><strong>Docker-image:</strong></summary>
 
 ```python
 FROM python:3.10
