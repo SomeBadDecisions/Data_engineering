@@ -76,39 +76,39 @@ For security purposes, we will not include the connection parameters in the code
 We will specify all the necessary libraries in cloud_service/service_dds/**requirements.txt** and install them from there in the future.
 
 <details>
-	<summary> **Docker-image:** </summary>
+	<summary><p>Docker-image:</p></summary>
 
 ```python
-	FROM python:3.10
+FROM python:3.10
 
-	ARG KAFKA_HOST
-	ARG KAFKA_PORT
-	ARG KAFKA_CONSUMER_USERNAME
-	ARG KAFKA_CONSUMER_PASSWORD
-	ARG KAFKA_CONSUMER_GROUP
-	ARG KAFKA_SOURCE_TOPIC
-	ARG KAFKA_DESTINATION_TOPIC
+ARG KAFKA_HOST
+ARG KAFKA_PORT
+ARG KAFKA_CONSUMER_USERNAME
+ARG KAFKA_CONSUMER_PASSWORD
+ARG KAFKA_CONSUMER_GROUP
+ARG KAFKA_SOURCE_TOPIC
+ARG KAFKA_DESTINATION_TOPIC
 
-	ARG PG_WAREHOUSE_HOST
-	ARG PG_WAREHOUSE_PORT
-	ARG PG_WAREHOUSE_DBNAME
-	ARG PG_WAREHOUSE_USER
-	ARG PG_WAREHOUSE_PASSWORD
+ARG PG_WAREHOUSE_HOST
+ARG PG_WAREHOUSE_PORT
+ARG PG_WAREHOUSE_DBNAME
+ARG PG_WAREHOUSE_USER
+ARG PG_WAREHOUSE_PASSWORD
 
-	RUN apt-get update -y
+RUN apt-get update -y
 
-	COPY . .
+COPY . .
 
-	RUN pip install -r requirements.txt
+RUN pip install -r requirements.txt
 
-	RUN mkdir -p /crt
-	RUN wget "https://storage.yandexcloud.net/cloud-certs/CA.pem" --output-document /crt/YandexInternalRootCA.crt
-	RUN chmod 0600 /crt/YandexInternalRootCA.crt
+RUN mkdir -p /crt
+RUN wget "https://storage.yandexcloud.net/cloud-certs/CA.pem" --output-document /crt/YandexInternalRootCA.crt
+RUN chmod 0600 /crt/YandexInternalRootCA.crt
 
-	WORKDIR /src
-	ENTRYPOINT ["python"]
+WORKDIR /src
+ENTRYPOINT ["python"]
 
-	CMD ["app.py"]
+CMD ["app.py"]
 ```
 </details>
 
