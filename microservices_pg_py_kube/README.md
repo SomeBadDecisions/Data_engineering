@@ -19,16 +19,16 @@
 <a id="Project_description"></a>
 ## 1 Project description 
 
-Within this project, it is necessary to develop a data storage for a food delivery aggregator. 
-The company does not have its own resources, so to solve the task, it is necessary to use a cloud service. In this case, **Yandex.Cloud** was chosen. 
+Within this project, I have to develop DWH for a food delivery aggregator. 
+The company doesn't have its own resources, so to solve the task, I have to use a cloud service. In this case I choose **Yandex.Cloud**. 
 
-With it's help were deployed:
+With it's help I deploy:
 - **PostgreSQL**
 - **Redis**
 - **Kafka**
 - **Container Registry** for docker images
 
-DWH should contain 3 layers: 
+DWH contains 3 layers: 
 
 - **STG** — raw data as is.
 - **CDM** — two datamarts. First one — order counter for dishes; Second one — order counter by product categories.
@@ -47,7 +47,7 @@ Raw data format: **JSON**.
 Message broker: **Kafka**.
 Database: **PostgreSQL**, **Redis**.
 
-To implement the project, it is necessary to write 3 microservices (one for each layer) and deploy them in **Kubernetes**.
+To implement the project, I'll write 3 microservices (one for each layer) and deploy them in **Kubernetes**.
 
 Business analysts will build BI reports in Data Lens based on the data from CDM.
 
@@ -56,7 +56,7 @@ The final pipeline will look as follows:
 ![app_scheme](https://github.com/SomeBadDecisions/Data_engineering/assets/63814959/a7041d6c-e11d-4853-b9da-7b023819633a)
 
 
-I have already developed the first microservice for the STG layer: /cloud_service/**service_stg**.
+I've already developed the first microservice for the STG layer: /cloud_service/**service_stg**.
 
 <a id="Microservice_development"></a>
 ## 2 Microservice development 
@@ -67,13 +67,13 @@ I have already developed the first microservice for the STG layer: /cloud_servic
 <a id="Docker-image"></a>
 #### 2.1.1 Docker-image 
 
-To begin with, let's create a docker image for the future service.
+To begin with, I create a docker image for the future service.
 
-For the DDS service, we will need connections to **Kafka** and **PostgreSQL**.
+For the DDS service, I need connections to **Kafka** and **PostgreSQL**.
 
-For security purposes, we will not include the connection parameters in the code of the service itself, but rather set them through environment variables.
+For security purposes, I don't include the connection parameters in the code of the service itself, but rather set them through environment variables.
 
-We will specify all the necessary libraries in cloud_service/service_dds/**requirements.txt** and install them from there in the future.
+I specify all the necessary libraries in cloud_service/service_dds/**requirements.txt** and install them from there in the future.
 
 <details><summary><strong>Docker-image:</strong></summary>
 
@@ -114,7 +114,7 @@ CMD ["app.py"]
 <a id="Docker-compose"></a>
 #### 2.1.2 Docker-compose 
 
-<details><summary>Let's add a description of the DDS service to cloud_service/<strong>docker-compose.yaml:</strong></summary>
+<details><summary>Next I add a description of the DDS service to cloud_service/<strong>docker-compose.yaml:</strong></summary>
 
 ```python
 dds_service:
@@ -151,9 +151,9 @@ dds_service:
 <a id="Helm-chart"></a>
 #### 2.1.3 Helm-chart 
 
-Let's prepare the files for release through Helm.
+Then I prepare the files for release through Helm.
 
-In cloud_service/service_dds/app/**Chart.yaml** we will specify the name of the service:
+In cloud_service/service_dds/app/**Chart.yaml** I specify the name of the service:
 
 ```python
 apiVersion: v2
@@ -163,7 +163,7 @@ type: application
 version: 0.1.0
 appVersion: "1.16.0"
 ```
-<details><summary>Let's create cloud_service/service_dds/app/<strong>values.yaml</strong> (connection parameters here and in the code have been changed for security purposes):</summary>
+<details><summary>After that I create cloud_service/service_dds/app/<strong>values.yaml</strong> (connection parameters here and in the code have been changed for security purposes):</summary>
 
 ```python
 replicaCount: 1
@@ -214,9 +214,9 @@ resources:
 <a id="Connections"></a>
 ##### 2.1.4.1 Connections 
 
-To begin with, let's create all the necessary connections. For the DDS layer, these are postgres and kafka.
+To begin with, I create all the necessary connections. For the DDS layer, these are postgres and kafka.
 
-<details><summary>Let's define the logic for connecting to kafka in cloud_service/service_dds/src/lib/kafka_connect/<strong>kafka_connectors.py:</strong></summary>
+<details><summary>Then I define the logic for connecting to kafka in cloud_service/service_dds/src/lib/kafka_connect/<strong>kafka_connectors.py:</strong></summary>
 
 ```python
 import json
@@ -290,7 +290,7 @@ class KafkaConsumer:
 ```
 </details>
 
-<details><summary>Similarly, let's configure the connection to PostgreSQL in the file cloud_service/service_dds/src/lib/pg/<strong>pg_connect.py:</strong></summary>
+<details><summary>Similarly, I configure the connection to PostgreSQL in the file cloud_service/service_dds/src/lib/pg/<strong>pg_connect.py:</strong></summary>
 
 ```python
 from contextlib import contextmanager
@@ -343,7 +343,7 @@ class PgConnect:
 
 <a id="Postgres"></a>
 ##### 2.1.4.2 Postgres 
-<details><summary>Next, we will write functions to fill the DDS layer tables in Postgres and save them to a file cloud_service/service_dds/src/dds_loader/repository/<strong>dds_repository.py:</strong></summary>
+<details><summary>Next, I write functions to fill the DDS layer tables in Postgres and save them to a file cloud_service/service_dds/src/dds_loader/repository/<strong>dds_repository.py:</strong></summary>
 
 ```python
 import uuid
@@ -1088,8 +1088,8 @@ class DdsRepository:
 ```
 </details>
 
-In order to ensure idempotence, we will write additional functions to check the presence of all necessary tables in Postgres and create them if they are missing. 
-<details><summary>All necessary functions containing DDL will be placed in the file cloud_service/service_dds/src/dds_loader/repository/<strong>dds_migrations.py:</strong></summary>
+In order to ensure idempotence, I write additional functions to check the presence of all necessary tables in Postgres and create them if they are missing. 
+<details><summary>All necessary functions containing DDL placed in the file cloud_service/service_dds/src/dds_loader/repository/<strong>dds_migrations.py:</strong></summary>
 
 ```python
 from lib.pg import PgConnect
@@ -1313,7 +1313,7 @@ class DdsMigrator:
 <a id="Kafka"></a>
 ##### 2.1.4.3 Kafka 
 
-<details><summary>Let's move on to data transmission in Kafka. We will describe the logic of receiving data and their subsequent transfer to a new topic in the file cloud_service/service_dds/src/dds_loader/<strong>dds_message_processor_job.py:</strong></summary>
+<details><summary>Then I have to deal with data transmission through Kafka. I describe the logic of receiving data and their subsequent transfer to a new topic in the file cloud_service/service_dds/src/dds_loader/<strong>dds_message_processor_job.py:</strong></summary>
 
 ```python
 from datetime import datetime
@@ -1443,13 +1443,13 @@ class DdsMessageProcessor:
 ##### 2.1.4.4 App logic 
 The main logic of the service is described in cloud_service/service_dds/src/**app.py**.
 
-To work with the service, we will use the class **BackgroundScheduler**, which will launch a worker at a specified interval.
+To work with the service, I use the class **BackgroundScheduler**, which launch a worker at a specified interval.
 
 In this case, the run function in the proc object is the entry point to the main logic of message processing.
 
-With the specified interval, the scheduler will launch the run function, inside which messages are read and processed from Kafka.
+With the specified interval, the scheduler launch the run function, inside which messages are read and processed from Kafka.
 
-Thus, micro-batch processing will be implemented.
+Thus, micro-batch processing implemented.
 
 ```python
 import logging
@@ -1485,7 +1485,7 @@ if __name__ == '__main__':
 
 ```
 
-<details><summary>Let's create a file cloud_service/service_dds/src/<strong>app_config.py</strong>, which will contain the connection parameters to the consumer and producer in Kafka, and the database in Postgres:</summary>
+<details><summary>Next I create a file cloud_service/service_dds/src/<strong>app_config.py</strong>, which contains the connection parameters to the consumer and producer in Kafka, and the database in Postgres:</summary>
 
 ```python
 import os
@@ -1552,13 +1552,13 @@ The development of the DDS service is complete.
 <a id="CDM"></a>
 ### 2.2 CDM 
 
-Most of the steps for creating a CDM service will be similar, so we will not go into detail about them. 
-The difference will be in the logic of filling the tables in Postgres and receiving data from the Kafka topic.
+Most of the steps for creating a CDM service are similar, so I won't go into detail about them. 
+The differences are in the logic of filling the tables in Postgres and receiving data from the Kafka topic.
 
 <a id="Postgres_2"></a>
 #### 2.2.1 Postgres 
 
-By analogy, let's describe the DDL for the CDM layer in the file cloud_service/service_cdm/src/cdm_loader/repository/**cdm_migrations.py**.
+By analogy, I describe the DDL for the CDM layer in the file cloud_service/service_cdm/src/cdm_loader/repository/**cdm_migrations.py**.
 
 <details><summary>The logic of filling the tables is located in the file cloud_service/service_cdm/src/cdm_loader/repository/<strong>cdm_repository.py</strong> and looks as follows:</summary>
 
@@ -1679,7 +1679,7 @@ class RestaurantCategoryCounterRepository:
 <a id="Kafka_2"></a>
 #### 2.2.2 Kafka 
 
-<details><summary>The logic of message reception will be described in the file cloud_service/service_cdm/src/cdm_loader/<strong>cdm_message_processor_job.py:</strong></summary>
+<details><summary>The logic of message reception I describe in the file cloud_service/service_cdm/src/cdm_loader/<strong>cdm_message_processor_job.py:</strong></summary>
 
 ```python
 from datetime import datetime
@@ -1749,7 +1749,7 @@ As I mentioned earlier, the remaining steps, such as filling in docker and docke
 
 This concludes the creation of the CDM service.
 
-After the development of the services was completed, corresponding Docker images were created and pushed to the registry.
+After the development of the services completed, I create and push corresponding Docker images to the registry.
 DDS and CDM services are fully ready for release in Helm and further autonomous operation.
 
 <a id="Conclusion"></a>
