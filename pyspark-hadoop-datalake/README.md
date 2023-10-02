@@ -72,7 +72,9 @@
 
 ## 2 Построение витрин
 
-Перед построением витрин заполним ODS-слой. Добавим партиционирование исходных данных по event_type:
+Перед построением витрин заполним ODS-слой. 
+
+Добавим партиционирование исходных данных по event_type:
 
 ```python
 events = spark.read.parquet("/user/master/data/geo/events")
@@ -118,7 +120,9 @@ events_geo = spark.read.parquet(events_path) \
 
 ![schema](https://user-images.githubusercontent.com/63814959/226731775-9290acd7-13ad-4c16-a851-ae6260547961.png)
 
-Напишем функцию для определения реального города для каждого события. В функции воспользуемся описанной выше формулой расстояния между двумя тчоками:
+Напишем функцию для определения реального города для каждого события. 
+
+<details><summary>В функции воспользуемся описанной выше формулой расстояния между двумя точками:</summary>
 
 ```python
 def get_city(events_geo, geo):
@@ -150,7 +154,7 @@ events = get_city(
     geo=geo
 )
 ```
-
+</details>
 
 
 Далее найдем актуальный адрес, то есть город в котором находился пользователь во время отправки последнего сообщения:
@@ -164,7 +168,7 @@ act_city = events \
 ```
 
 Составим список непрерывного пребывания в одном городе опираясь на дату сообщения из следующего. 
-На основании этой выборки найдем список посещенных городов, их количество и домашний город:
+<details><summary>На основании этой выборки найдем список посещенных городов, их количество и домашний город:</summary>
 
 ```python
 window = Window.partitionBy('user_id').orderBy('date')
@@ -196,6 +200,8 @@ home = travels \
         .withColumnRenamed('city', 'home_city')
 		
 ```
+
+</details>
 
 Напишем функцию для определения локального времени актуального города:
 
@@ -280,7 +286,7 @@ pre_result = events.withColumn('week_message', F.count(F.when(events.event_type 
     .distinct()
 ```
 
-Далее рассчитаем дату первого события для каждого пользователя и сджойним:
+<details><summary>Далее рассчитаем дату первого события для каждого пользователя и сджойним:</summary>
 
 ```python
 window = Window.partitionBy('user_id').orderBy(F.col('date'))
@@ -305,6 +311,9 @@ result = pre_result.join(reg_agg, ['week', 'month', 'zone_id'], 'left') \
         .select(pre_result['month'], 'week', 'zone_id', 'week_message', 'week_reaction', 'week_subscription', 'week_user', \
             'month_message', 'month_reaction', 'month_subscription', 'month_user')
 ```
+
+</details>
+
 Джоба: **/src/scripts/dm_zone.py**
 
 Локальный тестовый **.ipynb**: **/src/dm_zone.ipynb** 
