@@ -1,80 +1,80 @@
-# Проектирование Data Lake
+# Data Lake design
 
-## 1.1 Описание
-В рамках данного проекта необходимо разработать Data Lake для системы рекомендаций социальной сети.
-Приложение будет предлагать пользователю написать человеку, если пользователь и адресат:
+## 1.1 Introduction
+In this project I have to develop a Data Lake for a social network recommendation system.
+Social network will suggest new friends to the user based on:
 
-- состоят в одном канале
-- раньше никогда не переписывались
-- находятся не дальше 1 км друг от друга
+- same channel membership
+- distance between users less than 1 kilometer
+- users have never communicated before
 
-При этом заказчик хочет лучше изучить аудиторию соцсети, чтобы в будущем запустить монетизацию. Для этого было решено провести геоаналитику:
+Moreover the customer wants to study the audience of the social network in order to launch monetization in the future. 
+For this reason he wants me to do some geoanalytics:
 
-- выяснить, где находится большинство пользователей по количеству сообщений, лайков и подписок из одной точки
-- посмотреть, в какой точке Австралии регистрируется больше всего новых пользователей
-- определить, как часто пользователи путешествуют и какие города выбирают
+- find out where the majority of users are based on the number of messages, likes and subscriptions from one point
+- define which Australian city has the biggest new user registration number
+- figure out how often users travel and which cities they choose
 
-Благодаря такой аналитике в соцсеть можно будет вставить рекламу: приложение сможет учитывать местонахождение пользователя и предлагать тому подходящие услуги компаний-партнёров. 
+This information will help customer to insert advertising into the social network: the application will be able to take into account the user’s location and offer him suitable services from partner companies.
 
-На источнике есть информация о координатах каждого события (сообщение, подписока, реакция, регистрация). 
-Данные находятся в hdfs: **/user/master/data/geo/events/**
+I have source which contains coordinates of each event (message, subscription, reaction, registration)
+Data stored in HDFS: **/user/master/data/geo/events/**
 
-Также, есть csv-файл с координатами центров городов Австралии для сопоставления. Находится в директории **/src/geo.csv**
+Also I have csv-file which contains coordinates of Australian city centers for comparasion. 
+Stored at: **/src/geo.csv**
 
-### 1.2 Структура хранилища
-Для данной задачи будет достаточно 4 слоев:
+### 1.2 Data Lake architecture
+I need 4 Data Lake layers for this task:
 
-- **Raw** - здесь хранятся сырые данные. Директория: **/user/master/data/geo/events/date=YYYY-MM-dd**. Данные партиционированы по датам;
-- **ODS** - здесь будут хранится предобработанные данные. Директория: **/user/konstantin/data/events/event_type=XXX/date=yyyy-MM-dd**. Здесь данные дополнительно партиционированы по типу события;
-- **Sandbox** - этот слой нужен для аналитики и решения Ad hoc задач. Директория: **/user/konstantin/analytics/…**;
-- **Data mart** - на этом слое будут хранится итоговые версии витрин данных. Директория: **/user/konstantin/prod/…**.
+- **Raw** - for raw data. Directory: **/user/master/data/geo/events/date=YYYY-MM-dd**. Data partitioned by date;
+- **ODS** - for preprocessed data. Directory: **/user/konstantin/data/events/event_type=XXX/date=yyyy-MM-dd**. Data partitioned by date and event type;
+- **Sandbox** - for some Ad-hoc analytics and tests. Directory: **/user/konstantin/analytics/…**;
+- **Data mart** - final versions of Data marts. Directory: **/user/konstantin/prod/…**.
 
-### 1.3 Целевые витрины
+### 1.3 Target data marts
 
-#### 1.3.1 Витрина в разрезе пользователей
+#### 1.3.1 User data mart
 
-Витрина должна содержать следующие поля:
+User data mart should contain:
 
-- **user_id** — идентификатор пользователя;
-- **act_city** — актуальный адрес. Это город, из которого было отправлено последнее сообщение;
-- **home_city** — домашний адрес. Это последний город, в котором пользователь был дольше 27 дней;
-- **travel_count** — количество посещённых городов. Если пользователь побывал в каком-то городе повторно, то это считается за отдельное посещение;
-- **travel_array** — список городов в порядке посещения;
-- **local_time** — местное время события.
+- **user_id** ;
+- **act_city** — current address. The city from which the last message was sent;
+- **home_city** — home address. The last city the user was in for longer than 27 days;
+- **travel_count** — number of cities visited. If the user has visited a certain city again, this is considered a separate visit.;
+- **travel_array** — list of cities in order of visiting;
+- **local_time** — local time of event.
 
-#### 1.3.2 Витрина в разрезе зон
+#### 1.3.2 Zone data mart
 
-В данной витрине должны содержаться события в конкретном городе за неделю и месяц:
+Zone (or city) data mart should contain events in a specific city for the week and month:
 
-- **month** — месяц расчёта;
-- **week** — неделя расчёта;
-- **zone_id** — идентификатор зоны (города);
-- **week_message** — количество сообщений за неделю;
-- **week_reaction** — количество реакций за неделю;
-- **week_subscription** — количество подписок за неделю;
-- **week_user** — количество регистраций за неделю;
-- **month_message** — количество сообщений за месяц;
-- **month_reaction** — количество реакций за месяц;
-- **month_subscription** — количество подписок за месяц;
-- **month_user** — количество регистраций за месяц.
+- **month** — month of calculation;
+- **week** — week of calculation;
+- **zone_id** — zone (city) id;
+- **week_message** — number of messages per week;
+- **week_reaction** — number of reactions per week;
+- **week_subscription** — number of subscriptions per week;
+- **week_user** — number of new user registrations per week;
+- **month_message** — number of messages per month;
+- **month_reaction** — number of reactions per month;
+- **month_subscription** — number pf subscriptions per month;
+- **month_user** — number of new user registrations per month.
 
-#### 1.3.3 Витрина для рекомендации друзей
+#### 1.3.3 Friend recommendation data mart
 
-Данная витрина будет использоваться для рекомендации друзей пользователям. 
+Friend recommendation data mart should contain:
 
-Поля витрины:
+- **user_left** — first user;
+- **user_right** — second user;
+- **processed_dttm**;
+- **zone_id**;
+- **local_time**.
 
-- **user_left** — первый пользователь;
-- **user_right** — второй пользователь;
-- **processed_dttm** — дата расчёта витрины;
-- **zone_id** — идентификатор зоны (города);
-- **local_time** — локальное время.
+## 2 Data mart development
 
-## 2 Построение витрин
+At first I have to fill in ODS-layer. 
 
-Перед построением витрин заполним ODS-слой. 
-
-Добавим партиционирование исходных данных по event_type:
+I want data to be partitioned not only by date but also for event type:
 
 ```python
 events = spark.read.parquet("/user/master/data/geo/events")
@@ -83,19 +83,28 @@ events.write.partitionBy("event_type","date")\
 .mode("overwrite").parquet("/user/konstantin/data/events")
 ```
 
-### 2.1 Витрина в разрезе пользователей 
+### 2.1 User data mart development
 
-Прежде всего необходимо определить, в каком городе было совершено событие.
+At first I have to determine in which city the took place.
 
-У нас есть файл geo.csv с координатами центров городов. Дополнительно добавим туда названия таймзон для последующего определения **local_time**.
-Обновленный файл : **/src/geo_timezone.csv** 
+I have file **geo.csv** with city centers coordinations. I'm adding aditional field with timezone names. It'll help me to determine **local_time**.
 
-Для решения задачи воспользуемся формулой расстояния между двумя точками на сфере:
+Updated file : **/src/geo_timezone.csv** 
 
-![image](https://user-images.githubusercontent.com/63814959/226187846-93b00a04-d831-4552-9120-1f18e40516e8.png)
+In this task I have to use the formula for the distance between two points on a sphere:
 
-И в данных, и в справочнике широта и долгота указана в градусах. Для этой задачи необходимо перевести значения в радианы.
-Загрузим справочник с координатами городов в HDFS и прочиатем его:
+![formula](https://github.com/SomeBadDecisions/Data_engineering/assets/63814959/050ce635-1ff7-46af-b3bb-005ea38d4d1a)
+
+Where:
+
+- $\varphi$1 - latitude of the first point 
+- $\varphi$2 - latitude of the second point
+- $\lambda$1 - longtitude of the first point
+- $\lambda$2 - longtitude of the second point
+- $r$ - radius of the Earth approximatelu equal to 6371 kilometers
+
+In both the data and the **geo.csv**, latitude and longitude are indicated in degrees. For my Data Lake I need to convert the values to radians.
+So I'm loading and then reading a new csv-file with city coordinates into HDFS:
 
 ```console
 hdfs dfs -copyFromLocal geo_timezone.csv /user/konstantin/data/
@@ -106,7 +115,7 @@ geo = spark.read.csv(geo_path, sep=';', header= True)\
       .withColumnRenamed("lat", "city_lat")\
       .withColumnRenamed("lng", "city_lon")
 ```
-Далее прочитаем сами данные:
+Then I'm reading raw data:
 
 ```python
 events_geo = spark.read.parquet(events_path) \
@@ -116,13 +125,13 @@ events_geo = spark.read.parquet(events_path) \
     .withColumn('user_id', F.col('event.message_from'))\
     .withColumn('event_id', F.monotonically_increasing_id())
 ```
-С учетом добавленных полей, данные имеют следующую структуру:
+Final data structure:
 
 ![schema](https://user-images.githubusercontent.com/63814959/226731775-9290acd7-13ad-4c16-a851-ae6260547961.png)
 
-Напишем функцию для определения реального города для каждого события. 
+Then I have to write a function to determine the real city for each event. 
 
-<details><summary>В функции воспользуемся описанной выше формулой расстояния между двумя точками:</summary>
+<details><summary>In this function I will use the distance formula given above:</summary>
 
 ```python
 def get_city(events_geo, geo):
@@ -157,7 +166,7 @@ events = get_city(
 </details>
 
 
-Далее найдем актуальный адрес, то есть город в котором находился пользователь во время отправки последнего сообщения:
+Next I have to find the current address. Current address is the city in which the user was located when the last message was sent:
 
 ```python
 window_act_city = Window().partitionBy('user_id').orderBy(F.col("date").desc())
@@ -167,8 +176,9 @@ act_city = events \
             .withColumnRenamed('city', 'act_city')
 ```
 
-Составим список непрерывного пребывания в одном городе опираясь на дату сообщения из следующего. 
-<details><summary>На основании этой выборки найдем список посещенных городов, их количество и домашний город:</summary>
+Then I'm making a list of continuous stay in one city based on the date of the message from the next city.
+
+<details><summary>Based on this information, I'm finding a list of cities visited, their number and home city:</summary>
 
 ```python
 window = Window.partitionBy('user_id').orderBy('date')
@@ -203,7 +213,7 @@ home = travels \
 
 </details>
 
-Напишем функцию для определения локального времени актуального города:
+Then I have to write function to determine the local time of current city:
 
 ```python
 def calc_local_tm(events):    
@@ -214,7 +224,7 @@ def calc_local_tm(events):
 local_time = calc_local_tm(act_city)
 ```
 
-Все необходимые данные готовы, осталось собрать итоговый результат:
+All the necessary data is ready, all that remains is to collect the final result:
 
 ```python
 result = events \
@@ -225,16 +235,15 @@ result = events \
         .selectExpr('user_id', 'act_city', 'home_city', 'travel_count', 'travel_array', 'local_time') \
         .distinct()
 ```
-Итог выглядит так:
+Final data mart sample:
 
 
 ![image](https://user-images.githubusercontent.com/63814959/226732751-ca4aa9a4-85fc-47fd-ba32-e2b1c20059b5.png)
 
 
-Для сборки финальной джобы потребуются 2 функции. 
-Первая будет подтягивать спарк-сессию, вторая будет записывать итоговый результат.
+To build the final spark job I need 2 functions: the first one shoulkd initialize spark session and the second one should write the result to data lake.
 
-Функция для инициализации спарк-сессии (в общем виде, т.к. не известны параметры кластера):
+Function for initializing a spark session (in general terms, since the cluster parameters are not known):
 
 ```python
 def spark_session_init(name):
@@ -245,29 +254,28 @@ def spark_session_init(name):
         .getOrCreate()
 ```
 
-Функция для записи:
+Write function:
 
 ```python 
 def write_df(df, df_name, date):
     df.write.mode('overwrite').parquet(f'/user/konstantin/prod/{df_name}/date={date}')
 ```
 
-Функции вынесем в отдельный файл: **/src/scripts/tools.py**
+I stored this functions in separate file: **/src/scripts/tools.py**
 
-Финальная джоба: **/src/scripts/dm_users.py** 
+Final job: **/src/scripts/dm_users.py** 
 
-Локальный тестовый **.ipynb**: **/src/dm_users.ipynb** 
+Local **.ipynb**: **/src/dm_users.ipynb** 
 
-### 2.2 Витрина в разрезе зон
+### 2.2 Zone data mart development
 
-Создадим витрине с распределением различных событий по городам.
-Данная витрина поможет понимать поведение пользователей в зависимости от географической зоны.
+I'm creating a data mart with the distribution of various events by city.
+I need this to understand user behavior depending on the geographical area.
 
-Для начала необходимо вновь прочитать данные. 
-Этот шаг никак не будет отличаться от предыдущей витрины за исключением того, 
-что отбирать будем все события, а не только с типом "сообщение".
+At first I need to read data.
+This step is the same as with user data mart, except I'm selecting all events, and not just those with the “message” type.
 
-В данных не предусмотрены события с типом "регистрация", поэтому для начала соберем без них:
+The data does not include events with the “registration” type, so I have to collect all other types first:
 
 ```python
 w_week = Window.partitionBy(['city', F.trunc(F.col("date"), "week")])
@@ -286,7 +294,7 @@ pre_result = events.withColumn('week_message', F.count(F.when(events.event_type 
     .distinct()
 ```
 
-<details><summary>Далее рассчитаем дату первого события для каждого пользователя и сджойним:</summary>
+<details><summary>Next I'm calculating the date of the first event for each user and joining with data from precious step</summary>
 
 ```python
 window = Window.partitionBy('user_id').orderBy(F.col('date'))
@@ -314,18 +322,15 @@ result = pre_result.join(reg_agg, ['week', 'month', 'zone_id'], 'left') \
 
 </details>
 
-Джоба: **/src/scripts/dm_zone.py**
+Final job: **/src/scripts/dm_zone.py**
 
-Локальный тестовый **.ipynb**: **/src/dm_zone.ipynb** 
+Local **.ipynb**: **/src/dm_zone.ipynb** 
 
-### 2.3 Витрина рекомендаций
+### 2.3 Friend recommendation data mart development
 
-В финальной витрине необходимо собрать парные атрибуты (два айдишника) пользователей, 
-которые могут быть порекомендованы друг другу.
+In the final data mart I have to collect paired attributes (two IDs) of users, which can be recommended to each other.
 
-Для начала прочитаем данные (как и при сборке предыдущих витрин).
-
-После найдем координаты последнего отправленного сообщения по каждому пользователю:
+At first, I'm reading the data and finding the coordinates of the last message sent for each user:
 
 ```python 
 window_last_msg = Window.partitionBy('user_id').orderBy(F.col('event.message_ts').desc())
@@ -337,7 +342,7 @@ last_msg = events.where("event_type == 'message'") \
     .selectExpr('user_id', 'msg_lon as lon', 'msg_lat as lat', 'city', 'event.datetime as datetime', 'timezone')
 ```
 
-Соберем список пользователей и каналов, на которые они подписаны с помощью self-join:
+Then I'm collecting a list of users and channels to which they are subscribed using self-join:
 
 ```python 
 user_channel = events_geo.select(
@@ -350,7 +355,7 @@ user_channel_f = user_channel \
             .filter('user_id < user_id_2')
 ```
 
-Сджойним результат с сообщениями, чтобы получить актуальные координаты для каждого в паре пользователей:
+Next I'm finding current coordinates for each pair of users:
 
 ```python 
 channel_msg = last_msg \
@@ -368,7 +373,7 @@ channel_msg = last_msg \
               .withColumnRenamed("timezone", "timezone_2")
 ```
 
-По уже знакомой формуле найдем расстояние между пользователями и отфильтруем по <= 1 км:
+Using the distance formula I'm determing the distance between users and then filtering it by <= 1 kilometer>:
 
 ```python 
 distance = channel_msg \
@@ -383,7 +388,7 @@ distance = channel_msg \
     .withColumn("local_time",F.from_utc_timestamp(F.col("TIME"),F.col('timezone_1')))
 ```
 
-Соберем список пользователей, которые писали друг другу:
+After that I'm collecting the list of users who have already written to each other:
 
 ```python 
 events_pairs = events.selectExpr('event.message_from as user_id','event.message_to as user_id_2') \
@@ -392,8 +397,7 @@ events_pairs = events.selectExpr('event.message_from as user_id','event.message_
 events_pairs_union = events_pairs.union(events_pairs.select('user_id_2', 'user_id')).distinct()
 ```
 
-Для получения итогового результата воспользуемся типом джойна **left-anti**, 
-чтобы отсечь пользователей, которые уже переписывались:
+Finally I'm using **left-anti** join to exclude users who have already written to each other:
 
 ```python 
 result = distance \
@@ -403,25 +407,26 @@ result = distance \
 	.distinct()
 ```
 
-Джоба: **/src/scripts/dm_rec.py**
+Final job: **/src/scripts/dm_rec.py**
 
-Локальный тестовый **.ipynb**: **/src/dm_rec.ipynb** 
+Local **.ipynb**: **/src/dm_rec.ipynb** 
 
-### 2.4 Автоматизация
+### 2.4 Airflow automation
 
-Для того, чтобы витрины рассчитывались ежедневно соберем DAG и поставим его на регламент в Airflow.
+In order for data marts to be calculated daily, I write a DAG and set it to daily schedule in Airflow.
 
-Код DAG'a: **/src/dags/dag_social_rec.py**
+DAG: **/src/dags/dag_social_rec.py**
 
-## Итоги
+## Conclusion
 
-В рамках данного проекта был разработан **Data Lake**, который содержит 4 слоя: RAW, ODS, Sandbox и DataMart.
+In this project were developed:
 
-Также были написаны на **pyspark** 3 джобы для сборки 3-х витрин.
-После был написан DAG для регулярного обновления витрин.
+- Data Lake with 4 layers (raw, ODS, Snadbox and data mart) 
+- 3 pyspark jobs for data marts creation  
+- DAG as a daily update tool
 
-Джобы лежат здесь: **/src/scripts**
+All pyspark jobs: **/src/scripts**
 
-Итоговый DAG: **/src/dags**
+Final DAG: **/src/dags**
 
-Для ознакомления загружены тестовые **Jupyter**-ноутбуки: **/src**
+Local **Jupyter**-notebooks: **/src**
