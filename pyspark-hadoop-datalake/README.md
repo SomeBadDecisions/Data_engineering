@@ -97,7 +97,7 @@ In this task I have to use the formula for the distance between two points on a 
 
 Where:
 
-- $ \varphi $ 1 - latitude of the first point 
+- $\varphi$ 1 - latitude of the first point 
 - $\varphi$ 2 - latitude of the second point
 - $\lambda$ 1 - longtitude of the first point
 - $\lambda$ 2 - longtitude of the second point
