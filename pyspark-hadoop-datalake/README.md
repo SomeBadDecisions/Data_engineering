@@ -97,10 +97,10 @@ In this task I have to use the formula for the distance between two points on a 
 
 Where:
 
-- $\varphi$1 - latitude of the first point 
-- $\varphi$2 - latitude of the second point
-- $\lambda$1 - longtitude of the first point
-- $\lambda$2 - longtitude of the second point
+- $ \varphi $ 1 - latitude of the first point 
+- $\varphi$ 2 - latitude of the second point
+- $\lambda$ 1 - longtitude of the first point
+- $\lambda$ 2 - longtitude of the second point
 - $r$ - radius of the Earth approximatelu equal to 6371 kilometers
 
 In both the data and the **geo.csv**, latitude and longitude are indicated in degrees. For my Data Lake I need to convert the values to radians.
@@ -421,7 +421,7 @@ DAG: **/src/dags/dag_social_rec.py**
 
 In this project were developed:
 
-- Data Lake with 4 layers (raw, ODS, Snadbox and data mart) 
+- Data Lake with 4 layers (raw, ODS, sandbox and data mart) 
 - 3 pyspark jobs for data marts creation  
 - DAG as a daily update tool
 
