@@ -1,28 +1,30 @@
-# Потоковая обработка данных
+# Stream processing
 
-## 1.1 Описание
-В рамках данного проекта необходимо создать приложение для потоковой обработки данных. Заказчик - агрегатор доставки еды.
-В приложении заказчика появилась новая функция - возможность оформления подписки. Подписка дает ряд возможностей, среди которых - добавление понравившегося ресторана в избранное.
+## 1.1 Project description
 
-От "избранных" ресторанов пользователи будут получать уведомления о различных акциях с ограниченным сроком действия. 
+Within this project I have to create stream processing app for food delivery aggregator.
+A new feature has appeared in the customer's application - now users can subscribe to restaurants. 
+Subscription provides a number of opportunities, including adding restaurant to your favorites.
+After that users will receive notifications from favorite restaurants about various limited-time promotions.
 
-Система работает так:
+The system works like this:
 
-- Ресторан отправляет через мобильное приложение акцию с ограниченным предложением. Например, такое: «Вот и новое блюдо — его нет в обычном меню. 
-Дарим на него скидку 70% до 14:00! Нам важен каждый комментарий о новинке»;
-- Сервис проверяет, у кого из пользователей ресторан находится в избранном списке;
-- Сервис формирует заготовки для push-уведомлений этим пользователям о временных акциях. Уведомления будут отправляться только пока действует акция.
+- The restaurant sends a limited offer promotion through its mobile app. For example, something like this: “Here’s a new dish - it’s not on the regular menu.
+We are giving a 70% discount on it until 2 pm! Every comment about the new product is important to us”;
+- The service checks which user has the restaurant in their favorite list;
+- The service generates templates for push notifications to these users about temporary promotions. Notifications will only be sent while the promotion is valid.
 
-## 1.2 План проекта
+## 1.2 Project structure 
 
-Схема работы сервиса:
-![2 _Proekt_1663599076](https://user-images.githubusercontent.com/63814959/236286217-d1d70bc0-9089-45d8-9f11-552d93efe7ee.png)
+Pipeline scheme:
+![stream_processing](https://github.com/SomeBadDecisions/Data_engineering/assets/63814959/7ee04ca8-366d-418b-9ba1-31185e4e37b5)
 
-Для реализации необходимо:
 
-**1. читать данные из Kafka с помощью Spark Structured Streaming и Python в режиме реального времени**
+Realization steps:
 
-Пример входного сообщения:
+**1. reading data in real time from Kafka with Spark Structured Streaming and Python**
+
+Input message example:
 
 ```json
 {
@@ -37,20 +39,18 @@
 }
 ```
 
-где:
+- **`"restaurant_id"`**  — restaurant UUID;
+- **`"adv_campaign_id"`** — promotion UUID;
+- **`"adv_campaign_content"`** — promotion content;
+- **`"adv_campaign_owner"`** — restaurant employee responsible for campaign;
+- **`"adv_campaign_owner_contact"`** — restaurant's employee contact;
+- **`"adv_campaign_datetime_start"`** — start time of the advertising campaign in the timestamp format;
+- **`"adv_campaign_datetime_end"`** — end time of the advertising campaign in the timestamp format;
+- **`"datetime_created"`** — campaing creation date and time in the timestamp format.
 
-- **`"restaurant_id"`**  — UUID ресторана;
-- **`"adv_campaign_id"`** — UUID рекламной кампании;
-- **`"adv_campaign_content"`** — текст кампании;
-- **`"adv_campaign_owner"`** — сотрудник ресторана, который является владельцем кампании;
-- **`"adv_campaign_owner_contact"`** — его контакт;
-- **`"adv_campaign_datetime_start"`** — время начала рекламной кампании в формате timestamp;
-- **`"adv_campaign_datetime_end"`** — время её окончания в формате timestamp;
-- **`"datetime_created"`** — время создания кампании в формате timestamp.
+**2. Reading data about restaurant subscribers from Postgres**
 
-**2. получать список подписчиков из Postgres**
-
-Таблица содержит соответствия пользователей и ресторанов, на которые они подписаны.
+The table contains matches between users and restaurants they follow.
 
 **DDL:**
 
@@ -63,13 +63,13 @@ CREATE TABLE public.subscribers_restaurants (
 );
 ```
 
-**3. джойнить данные из Kafka с данными из БД**
+**3. Joining data from Kafka with data from the Postgres**
 
-**4. сохранять в памяти полученные данные, чтобы не собирать их заново после отправки в Postgres или Kafka**
+**4. Persisting data, so as not to create them again after sending them to Postgres or Kafka**
 
-**5.отправлять выходное сообщение в Kafka с информацией об акции, пользователе со списком избранного и ресторане, а ещё вставлять записи в Postgres, чтобы впоследствии получить фидбэк от пользователя.**
+**5. Sending an output message with information about the promotion, the user with a list of favorites and the restaurant to Kafka. And also inserting data into Postgres for future feedback from the user.**
 
-**DDL** целевой таблицы:
+Target table **DDL**:
 
 ```sql 
 CREATE TABLE public.subscribers_feedback (
@@ -89,7 +89,7 @@ CREATE TABLE public.subscribers_feedback (
 );
 ```
 
-Структура выходного сообщения:
+Output message example:
 
 ```json
 {
@@ -106,19 +106,17 @@ CREATE TABLE public.subscribers_feedback (
 }
 ```
 
-По сравнению с входным добавляются два новый поля:
-- **`"client_id"`** — UUID подписчика ресторана, который достаётся из таблицы Postgres.
-- **`"trigger_datetime_created"`** — время создания триггера, то есть выходного сообщения. Оно добавляется во время создания сообщения.
+Compared to input message I add two fields:
+- **`"client_id"`** — restaurant's subscriber UUID from Postgres.
+- **`"trigger_datetime_created"`** — output message time.
 
-**6. На основе полученной информации сервис push-уведомлений будет читать сообщения из Kafka и формировать готовые уведомления.**
+**6. Based on the information received, the push notification service reading messages from Kafka and generating notifications.**
 
-Этот шаг происходит уже без нашего участия.
+This step takes place without my participation
 
-## 2.1 Проверка работы потока
+## 2.1 Streaming checking
 
-Для начала проверим корректность работы потока данных. Для этого отправим тестовое сообщение через **kcat** и прочитаем его.
-Для этого напишем тестовые консьюмер и продьюсер:
-
+At first I send and then read test message with **kcat**. For this purpose I create test producer and consumer: 
 Consumer:
 
 ```bash
@@ -148,13 +146,11 @@ Producer:
 key:{"restaurant_id": "123e4567-e89b-12d3-a456-426614174000","adv_campaign_id": "123e4567-e89b-12d3-a456-426614174003","adv_campaign_content": "first campaign","adv_campaign_owner": "Ivanov Ivan Ivanovich","adv_campaign_owner_contact": "iiivanov@restaurant_id","adv_campaign_datetime_start": 1659203516,"adv_campaign_datetime_end": 2659207116,"datetime_created": 1659131516}
 ```
 
-Убеждаемся, что поток работает корректно, сообщения успешно поступают консьюмеру.
-
 ## 2.2 Читаем данные из Kafka 
 
-Здесь и по всему проекту в дальнейшем **логин и пароль были изменены**.
+For security reasons I changed **login and password**.
 
-Для начала прочитаем данные об акциях ресторанов из Kafka:
+Read data from Kafka:
 
 ```python
 restaurant_read_stream_df = spark.readStream \
@@ -167,10 +163,9 @@ restaurant_read_stream_df = spark.readStream \
     .load()
 ```
 
-После десериализуем их, дополнительно рассчитаем текущее время, чтобы отбирать только актуальные предложения:
+Deserialize it and then filter by relevance:
 
 ```python
-# определяем схему входного сообщения для json
 schema = StructType([
     StructField("restaurant_id", StringType()),
     StructField("adv_campaign_id", StringType()),
@@ -182,22 +177,19 @@ schema = StructType([
     StructField("datetime_created", LongType()),
 ])
 
-# определяем текущее время в UTC в миллисекундах
 current_timestamp_utc = int(round(datetime.utcnow().timestamp()))
 
-# десериализуем из value сообщения json и фильтруем по времени старта и окончания акции
 filtered_read_stream_df = restaurant_read_stream_df \
     .select(from_json(col("value").cast("string"), schema).alias("result")) \
     .select(col("result.*")) \
     .where((col("adv_campaign_datetime_start") < current_timestamp_utc) & (col("adv_campaign_datetime_end") > current_timestamp_utc))
 ```
 
-## 2.3 Читаем данные из postgres
+## 2.3 Read data from Postgres
 
-Прочитаем статичные данные из postgres о подписках пользователей на рестораны:
+Read subscribtions static data from Postgres:
 
 ```python 
-#читаем из Postgres информацию о подписках пользователей на рестораны
 subscribers_restaurant_df = spark.read \
                     .format('jdbc') \
                       .option('url', 'jdbc:postgresql://rc1a-fswjkpli01zafgjm.mdb.yandexcloud.net:6432/de') \
@@ -208,10 +200,9 @@ subscribers_restaurant_df = spark.read \
                     .load()
 ```
 
-Сджойним со стриминговыми данными:
+Join with streaming data:
 
 ```python 
-# джойним данные из сообщения Kafka с пользователями подписки по restaurant_id (uuid). Добавляем время создания события.
 result_df = filtered_read_stream_df.alias('stream') \
     .join(subscribers_restaurant_df.alias('static'), \
         col("stream.restaurant_id") == col("static.restaurant_id")) \
@@ -219,16 +210,15 @@ result_df = filtered_read_stream_df.alias('stream') \
     .withColumn("trigger_datetime_created", lit(int(round(datetime.utcnow().timestamp()))))
 ```
 
-## 2.4 Запишем результат
+## 2.4 Write result
 
-Результат нам нужно отправлять в новый топик Kafka и записывать в postgres. Напишем функцию, которую впоследствии будем подавать в **.foreachBatch()**:
+I have to send result to new Kafka topic and Postgres. 
+
+<details><summary>I write python function for this purpose which I will use later in <strong>.foreachBatch()</strong></summary>
 
 ```python 
-# метод для записи данных в 2 target: в PostgreSQL для фидбэков и в Kafka для триггеров
 def foreach_batch_function(df, epoch_id):
-    # сохраняем df в памяти, чтобы не создавать df заново перед отправкой в Kafka
     df.persist()
-    # записываем df в PostgreSQL с полем feedback
     df.write \
       .mode('append') \
       .format('jdbc') \
@@ -238,7 +228,7 @@ def foreach_batch_function(df, epoch_id):
       .option("user", "user") \
       .option("password", "password") \
       .save()
-    # создаём df для отправки в Kafka. Сериализация в json.
+	  
     kafka_df = df.select(to_json( \
             struct("restaurant_id", \
                    "adv_campaign_id", \
@@ -251,7 +241,7 @@ def foreach_batch_function(df, epoch_id):
                    "datetime_created", \
                    "trigger_datetime_created")) \
             .alias("value"))
-    # отправляем сообщения в результирующий топик Kafka без поля feedback
+
     kafka_df.write \
         .format('kafka') \
         .option('kafka.bootstrap.servers', 'rc1b-2erh7b35n4j4v869.mdb.yandexcloud.net:9091') \
@@ -260,11 +250,13 @@ def foreach_batch_function(df, epoch_id):
         .option('kafka.sasl.mechanism', 'SCRAM-SHA-512') \
         .option('topic', 'konstantin_result') \
         .save()
-    # очищаем память от df
+
     df.unpersist()
 ```
 
-Запустим стриминг:
+</details>
+
+Start streaming:
 
 ```python 
 result_df.writeStream \
@@ -273,12 +265,13 @@ result_df.writeStream \
     .awaitTermination()
 ```
 
-## 3 Итоги
+## 3 Conclusion
 
-В рамках данного проекта был реализован сервис оповещения клиентов об актуальных акциях ресторанов, на которые они подписаны.
+Within this project I created service which sends relevant push-notifications to restaurant subscribers. 
 
-1. Стриминговые данные прочитаны из Kafka, статичные из postgres
-2. Данные обработаны и преобразованы
-3. Итоги отправлены в выходной топик Kafka для последующей передачи приложению, напрявляющему push-уведомления клиентам. Дополнительно итоги записаны в postgres для последующей аналитики.
+1. Static data was read from Postgres and streaming data was read from Kafka
+2. Data was processed and transformed
+3. Results were send to push-notification service through Kafka. 
+4. Also results were stored in Postgres fo future analysis and users feedback.
 
-Итоговый код: **/src/rest_promo_streaming.py**
+Final code: **/src/rest_promo_streaming.py**
