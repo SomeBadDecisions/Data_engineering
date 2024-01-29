@@ -5,11 +5,11 @@ from pyspark.sql import SparkSession
 from pyspark.sql.functions import from_json, to_json, col, lit, struct
 from pyspark.sql.types import StructType, StructField, StringType, LongType
 
-# метод для записи данных в 2 target: в PostgreSQL для фидбэков и в Kafka для триггеров
+# method for writing data to 2 targets: PostgreSQL for feedback and Kafka for triggers
 def foreach_batch_function(df, epoch_id):
-    # сохраняем df в памяти, чтобы не создавать df заново перед отправкой в Kafka
+    # persisting df so as not to create again before sending to Kafka
     df.persist()
-    # записываем df в PostgreSQL с полем feedback
+    # writing df to Postgres with feedback field
     df.write \
       .mode('append') \
       .format('jdbc') \
@@ -19,7 +19,7 @@ def foreach_batch_function(df, epoch_id):
       .option("user", "user") \
       .option("password", "user") \
       .save()
-    # создаём df для отправки в Kafka. Сериализация в json.
+    # creating df for sending to Kafka. Serializing in json.
     kafka_df = df.select(to_json( \
             struct("restaurant_id", \
                    "adv_campaign_id", \
@@ -32,7 +32,7 @@ def foreach_batch_function(df, epoch_id):
                    "datetime_created", \
                    "trigger_datetime_created")) \
             .alias("value"))
-    # отправляем сообщения в результирующий топик Kafka без поля feedback
+    # sending messages in target Kafka topic without feedback field
     kafka_df.write \
         .format('kafka') \
         .option('kafka.bootstrap.servers', 'rc1b-2erh7b35n4j4v869.mdb.yandexcloud.net:9091') \
@@ -41,10 +41,10 @@ def foreach_batch_function(df, epoch_id):
         .option('kafka.sasl.mechanism', 'SCRAM-SHA-512') \
         .option('topic', 'konstantin_result') \
         .save()
-    # очищаем память от df
+    # unpersisting df
     df.unpersist()
 
-# необходимые библиотеки для интеграции Spark с Kafka и PostgreSQL
+# essential libs for Spark integration with Kafka and PostgreSQL
 spark_jars_packages = ",".join(
         [
             "org.apache.spark:spark-sql-kafka-0-10_2.12:3.3.0",
@@ -52,14 +52,14 @@ spark_jars_packages = ",".join(
         ]
     )
 
-# создаём spark сессию с необходимыми библиотеками в spark_jars_packages для интеграции с Kafka и PostgreSQL
+# creating spark session with libs in spark_jars_packages for integration with Postgres and Kafka
 spark = SparkSession.builder \
     .appName("RestaurantSubscribeStreamingService") \
     .config("spark.sql.session.timeZone", "UTC") \
     .config("spark.jars.packages", spark_jars_packages) \
     .getOrCreate()
 
-# читаем из топика Kafka сообщения с акциями от ресторанов 
+# reading from Kafka topic messages with promotions from restaurants 
 restaurant_read_stream_df = spark.readStream \
     .format('kafka') \
     .option('kafka.bootstrap.servers', 'rc1b-2erh7b35n4j4v869.mdb.yandexcloud.net:9091') \
@@ -69,7 +69,7 @@ restaurant_read_stream_df = spark.readStream \
     .option('subscribe', 'konstantin_in') \
     .load()
 
-# определяем схему входного сообщения для json
+# defining input message scheme for json
 schema = StructType([
     StructField("restaurant_id", StringType()),
     StructField("adv_campaign_id", StringType()),
@@ -81,16 +81,16 @@ schema = StructType([
     StructField("datetime_created", LongType()),
 ])
 
-# определяем текущее время в UTC в миллисекундах
+# defining current UTC time
 current_timestamp_utc = int(round(datetime.utcnow().timestamp()))
 
-# десериализуем из value сообщения json и фильтруем по времени старта и окончания акции
+# deserializing from value and filtering by promotion start and end time
 filtered_read_stream_df = restaurant_read_stream_df \
     .select(from_json(col("value").cast("string"), schema).alias("result")) \
     .select(col("result.*")) \
     .where((col("adv_campaign_datetime_start") < current_timestamp_utc) & (col("adv_campaign_datetime_end") > current_timestamp_utc))
 
-#читаем из Postgres информацию о подписках пользователей на рестораны
+#reading information about user's subscriptions on restaurants from Postgres
 subscribers_restaurant_df = spark.read \
                     .format('jdbc') \
                       .option('url', 'jdbc:postgresql://rc1a-fswjkpli01zafgjm.mdb.yandexcloud.net:6432/de') \
@@ -100,14 +100,14 @@ subscribers_restaurant_df = spark.read \
                     .option('password', 'password') \
                     .load()
 
-# джойним данные из сообщения Kafka с пользователями подписки по restaurant_id (uuid). Добавляем время создания события.
+# Joining data from Kafka messages with user's subscriptions on restaurant_id (uuid). Adding event creation time field.
 result_df = filtered_read_stream_df.alias('stream') \
     .join(subscribers_restaurant_df.alias('static'), \
         col("stream.restaurant_id") == col("static.restaurant_id")) \
     .select(col("stream.*"), col("client_id")) \
     .withColumn("trigger_datetime_created", lit(int(round(datetime.utcnow().timestamp()))))
 
-# запускаем стриминг
+# starting streaming
 result_df.writeStream \
     .foreachBatch(foreach_batch_function) \
     .start() \
